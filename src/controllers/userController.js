@@ -25,3 +25,19 @@ export const followUser = async (req, res) => {
         res.status(500).json({ error: "Xatolik" });
     }
 };
+
+// src/controllers/userController.js
+export const searchUsers = async (req, res) => {
+    const { username } = req.query;
+    const currentUserId = req.user.id; // Token orqali olingan
+
+    try {
+        const users = await db.query(
+            "SELECT id, username, avatar_url, bio FROM users WHERE username ILIKE $1 AND id != $2 LIMIT 10",
+            [`%${username}%`, currentUserId]
+        );
+        res.json(users.rows);
+    } catch (err) {
+        res.status(500).json({ error: "Qidiruvda xatolik" });
+    }
+};
