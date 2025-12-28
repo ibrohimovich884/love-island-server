@@ -24,14 +24,14 @@ export const login = async (req, res) => {
     const { email, password } = req.body;
     try {
         const user = await db.query("SELECT * FROM users WHERE email = $1", [email]);
-        
+
         if (user.rows.length === 0) {
             return res.status(404).json({ error: "Foydalanuvchi topilmadi" });
         }
 
         // MUHIM: Parolni solishtirish
         const isMatch = await bcrypt.compare(password, user.rows[0].password);
-        
+
         if (!isMatch) {
             return res.status(400).json({ error: "Parol noto'g'ri" });
         }
@@ -40,5 +40,22 @@ export const login = async (req, res) => {
         res.json({ token, user: { id: user.rows[0].id, username: user.rows[0].username } });
     } catch (err) {
         res.status(500).json({ error: "Server xatosi" });
+    }
+};
+
+// src/controllers/userController.js ichiga qo'shing
+export const getPendingRequests = async (req, res) => {
+    const userId = req.user.id;
+    try {
+        const requests = await db.query(
+            `SELECT f.id, u.username, u.avatar_url, f.requester_id 
+             FROM friendships f 
+             JOIN users u ON f.requester_id = u.id 
+             WHERE f.receiver_id = $1 AND f.status = 'pending'`,
+            [userId]
+        );
+        res.json(requests.rows);
+    } catch (err) {
+        res.status(500).json({ error: "So'rovlarni olishda xatolik" });
     }
 };

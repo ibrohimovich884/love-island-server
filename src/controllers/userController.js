@@ -41,3 +41,32 @@ export const searchUsers = async (req, res) => {
         res.status(500).json({ error: "Qidiruvda xatolik" });
     }
 };
+
+// Backend: controllers/userController.js
+export const updateProfile = async (req, res) => {
+    try {
+        const { username, bio, avatar_url } = req.body;
+        const userId = req.user.id; // Middleware orqali kelayotgan ID
+
+        // PostgreSQL Query - Userni yangilash
+        const result = await db.query(
+            `UPDATE users 
+             SET username = $1, bio = $2, avatar_url = $3 
+             WHERE id = $4 
+             RETURNING id, username, email, avatar_url, bio`,
+            [username, bio, avatar_url, userId]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: "Foydalanuvchi topilmadi" });
+        }
+
+        res.status(200).json({ 
+            message: "Profil yangilandi", 
+            user: result.rows[0] 
+        });
+    } catch (error) {
+        console.error("Update Error:", error);
+        res.status(500).json({ message: "Serverda xatolik yuz berdi" });
+    }
+};
