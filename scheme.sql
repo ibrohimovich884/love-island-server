@@ -16,3 +16,11 @@ CREATE TABLE friendships (
     status VARCHAR(20) DEFAULT 'pending', -- 'pending', 'accepted', 'blocked'
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE friends (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    friend_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    status VARCHAR(20) DEFAULT 'pending', -- 'pending', 'accepted', 'rejected'
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

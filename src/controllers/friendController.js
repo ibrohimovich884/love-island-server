@@ -1,33 +1,78 @@
 import * as db from '../config/db.js';
 
 // Do'stlik so'rovi yuborish
-export const sendFriendRequest = async (req, res) => {
-    const { receiverId } = req.body;
-    const requesterId = req.user.id; // Middleware orqali keladi
+// controllers/friendController.js (taxminiy ko'rinishi)
 
+export const sendFriendRequest = async (req, res) => {
     try {
-        await db.query(
-            "INSERT INTO friendships (requester_id, receiver_id) VALUES ($1, $2)",
-            [requesterId, receiverId]
+        const { friendId } = req.body; // Kimga yuborilmoqda
+        const userId = req.user.id;    // Kim yuboryapti (token orqali keladi)
+
+        // 1. O'ziga o'zi yuborishni tekshirish
+        if (userId == friendId) {
+            return res.status(400).json({ error: "O'zingizga match yubora olmaysiz" });
+        }
+
+        // 2. Oldin yuborilganmi yoki yo'qligini tekshirish
+        const existing = await db.query(
+            "SELECT * FROM friends WHERE (user_id = $1 AND friend_id = $2)",
+            [userId, friendId]
         );
-        res.json({ success: true, message: "So'rov yuborildi" });
+
+        if (existing.rows.length > 0) {
+            return res.status(400).json({ error: "So'rov allaqachon yuborilgan" });
+        }
+
+        // 3. Bazaga saqlash
+        // 'pending' - hali javob berilmagan holat
+        await db.query(
+            "INSERT INTO friends (user_id, friend_id, status) VALUES ($1, $2, 'pending')",
+            [userId, friendId]
+        );
+
+        res.status(200).json({ message: "Match so'rovi muvaffaqiyatli yuborildi! ❤️" });
     } catch (err) {
-        res.status(500).json({ error: "Xatolik yoki so'rov oldin yuborilgan" });
+        console.error("Match error:", err.message);
+        res.status(500).json({ error: "Serverda xatolik yuz berdi" });
     }
 };
 
-// Kelgan so'rovlarni ko'rish
+// controllers/friendController.js
+
+// 1. Menga kelgan kutilayotgan so'rovlarni ko'rish
 export const getPendingRequests = async (req, res) => {
     try {
-        const requests = await db.query(
-            `SELECT f.id, u.username, u.id as user_id 
-             FROM friendships f 
-             JOIN users u ON f.requester_id = u.id 
-             WHERE f.receiver_id = $1 AND f.status = 'pending'`,
-            [req.user.id]
+        const userId = req.user.id; // Token orqali kelgan mening ID'im
+
+        const result = await db.query(
+            `SELECT f.id, u.username, u.avatar_url, u.id as sender_id 
+             FROM friends f 
+             JOIN users u ON f.user_id = u.id 
+             WHERE f.friend_id = $1 AND f.status = 'pending'`,
+            [userId]
         );
-        res.json(requests.rows);
+
+        res.json(result.rows);
     } catch (err) {
+        console.error("Pending yuklashda xato:", err.message);
+        res.status(500).json({ error: "Xatolik yuz berdi" });
+    }
+};
+
+// 2. So'rovga javob berish (Accept/Reject)
+export const respondToRequest = async (req, res) => {
+    try {
+        const { requestId, status } = req.body; 
+
+        // Muhim: Jadval nomi 'friends' bo'lishi kerak
+        await db.query(
+            "UPDATE friends SET status = $1 WHERE id = $2",
+            [status, requestId]
+        );
+
+        res.json({ message: "Javob yuborildi" });
+    } catch (err) {
+        console.error("Respond xatosi:", err.message);
         res.status(500).json({ error: "Xatolik" });
     }
 };
