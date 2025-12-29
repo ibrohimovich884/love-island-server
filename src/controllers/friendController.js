@@ -62,7 +62,7 @@ export const getPendingRequests = async (req, res) => {
 // 2. So'rovga javob berish (Accept/Reject)
 export const respondToRequest = async (req, res) => {
     try {
-        const { requestId, status } = req.body; 
+        const { requestId, status } = req.body;
 
         // Muhim: Jadval nomi 'friends' bo'lishi kerak
         await db.query(
@@ -74,5 +74,30 @@ export const respondToRequest = async (req, res) => {
     } catch (err) {
         console.error("Respond xatosi:", err.message);
         res.status(500).json({ error: "Xatolik" });
+    }
+};
+
+// controllers/friendController.js
+
+export const getAcceptedMatches = async (req, res) => {
+    try {
+        const userId = req.user.id;
+
+        // Murakkabroq SQL: Men yuborgan yoki menga kelgan, 
+        // lekin statusi 'accepted' bo'lgan foydalanuvchilarni topish
+        const result = await db.query(
+            `SELECT f.id as friendship_id, u.id as user_id, u.username, u.avatar_url, u.bio
+             FROM friends f
+             JOIN users u ON (f.user_id = u.id OR f.friend_id = u.id)
+             WHERE (f.user_id = $1 OR f.friend_id = $1) 
+               AND f.status = 'accepted' 
+               AND u.id != $1`,
+            [userId]
+        );
+
+        res.json(result.rows);
+    } catch (err) {
+        console.error("Matches yuklashda xato:", err.message);
+        res.status(500).json({ error: "Xatolik yuz berdi" });
     }
 };
