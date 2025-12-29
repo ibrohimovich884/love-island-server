@@ -10,6 +10,10 @@ const pool = new Pool({
     database: process.env.DB_NAME,
     password: process.env.DB_PASSWORD,
     port: process.env.DB_PORT,
+    // Neon yoki boshqa Cloud bazalar uchun SSL shart:
+    ssl: {
+        rejectUnauthorized: false
+    }
 });
 
 export const query = (text, params) => pool.query(text, params);
