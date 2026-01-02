@@ -36,8 +36,24 @@ export const login = async (req, res) => {
             return res.status(400).json({ error: "Parol noto'g'ri" });
         }
 
-        const token = jwt.sign({ id: user.rows[0].id }, process.env.JWT_SECRET, { expiresIn: '24h' });
-        res.json({ token, user: { id: user.rows[0].id, username: user.rows[0].username } });
+        const token = jwt.sign(
+            {
+                id: user.rows[0].id,
+                username: user.rows[0].username,
+                avatar_url: user.rows[0].avatar_url
+            },
+            process.env.JWT_SECRET,
+            { expiresIn: '365d' } // Token 1 yil davomida amal qiladi
+        );
+
+        res.json({
+            token,
+            user: {
+                id: user.rows[0].id,
+                username: user.rows[0].username,
+                avatar_url: user.rows[0].avatar_url
+            }
+        });
     } catch (err) {
         res.status(500).json({ error: "Server xatosi" });
     }
